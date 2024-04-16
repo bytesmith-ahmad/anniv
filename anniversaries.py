@@ -51,12 +51,12 @@ def main(*args):
     parser.add_argument('--and', dest='_and', nargs='+')
     # def order       (args,Q): pass
     parser.add_argument('--ord','-o', action='store_true')
-    #todo ORDER BY ROWID
+    parser.add_argument('-rowid' '-i', action='store_const', const='DESC')
     parser.add_argument('-who',  action='store_const', const='DESC', help='Name for the anniversary')
     parser.add_argument('-date', action='store_const', const='DESC', help='Date for the anniversary')
     parser.add_argument('-type', action='store_const', const='DESC', help='Type for the anniversary')
     parser.add_argument('-note', action='store_const', const='DESC', help='Note for the anniversary')
-    #todo parser ORDER BY ROWID
+    parser.add_argument('+rowid', '+i',  action='store_const', const='ASC')
     parser.add_argument('+who',  action='store_const', const='ASC', help='Name for the anniversary')
     parser.add_argument('+date', action='store_const', const='ASC', help='Date for the anniversary')
     parser.add_argument('+type', action='store_const', const='ASC', help='Type for the anniversary')
@@ -82,9 +82,10 @@ def main(*args):
     #* args = parser.parse_args(shplit("--where type LIKE b%"))
     #* args = parser.parse_args(shplit("--where who = Nabi --and type = marriage"))
     #* args = parser.parse_args(shplit("--where who = Nabi --or type = marriage"))
-    #* args = parser.parse_args(shplit("--ord -who +date -type +note"))
+    #* args = parser.parse_args(shplit("-o -i"))
     #* args = parser.parse_args(shplit("--lim 3"))
     #* args = parser.parse_args(shplit("--lim 3 --ofs 4"))
+    #* args = parser.parse_args(shplit("--sql SELECT version()"))
     #^ Testing only
 
     args = parser.parse_args() #todo deactivate when testing
@@ -111,7 +112,7 @@ def main(*args):
         if args.ord: Q = order(args,Q)
         if args.lim: Q = limit(args,Q)
     elif args.sql:
-        Q = Query(args.sql)
+        Q = Query(' '.join(args.sql))
     else:
         Q = select_all()
     
@@ -121,8 +122,6 @@ def main(*args):
     command = f"sqlite3 -batch {db_filepath} \".mode {Q.mode}\" \"{Q.sql}\""
     # Execute
     run(command)
-    # Print message if any
-    if Q.msg: print(Q.msg)
 
 #~ Functions definitions
 
@@ -131,10 +130,9 @@ class Query:
         self.sql: str = sql
         self.sortable: bool = sortable
         self.mode: str = mode
-        self.msg: str = message
 
 def select_all():
-    sql = "SELECT rowid, * FROM anniversaries; SELECT COUNT(*) AS 'rows' FROM anniversaries;"
+    sql = "SELECT rowid, * FROM anniversaries"
     return Query(sql,True)
 
 def select_by_id(_id):
@@ -184,10 +182,11 @@ def extend_where(args,Q):
 def order(args,Q):
     Q.sortable = False
     ordering_terms = []
-    if args.who:  ordering_terms += [f"who {args.who}"]
-    if args.date: ordering_terms += [f"date {args.date}"]
-    if args.type: ordering_terms += [f"type {args.type}"]
-    if args.note: ordering_terms += [f"note {args.note}"]
+    if args.rowid: ordering_terms += [f"rowid {args.id}"]
+    if args.who:   ordering_terms += [f"who {args.who}"]
+    if args.date:  ordering_terms += [f"date {args.date}"]
+    if args.type:  ordering_terms += [f"type {args.type}"]
+    if args.note:  ordering_terms += [f"note {args.note}"]
     if ordering_terms:
         Q.sql += "ORDER BY " + ", ".join(ordering_terms)
     return Q
